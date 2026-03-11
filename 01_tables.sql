@@ -1,16 +1,4 @@
--- ============================================================
---  MediCare+ Hospital & Clinic Management System
---  FILE: tables.sql
---  Contains: CREATE TABLE statements + INSERT sample data
---  Target:   SQL Server
--- ============================================================
 
-USE master;
-GO
-
-IF EXISTS (SELECT name FROM sys.databases WHERE name = 'MediCarePlus')
-    DROP DATABASE MediCarePlus;
-GO
 
 CREATE DATABASE MediCarePlus;
 GO
@@ -18,14 +6,6 @@ GO
 USE MediCarePlus;
 GO
 
--- ============================================================
---  SECTION 1 — TABLE CREATION
--- ============================================================
-
--- ------------------------------------------------------------
---  TABLE 1: Departments
---  HeadDoctorID is nullable here; FK added after Doctors exist
--- ------------------------------------------------------------
 CREATE TABLE Departments (
     DepartmentID   INT          IDENTITY(1,1) PRIMARY KEY,
     DepartmentName VARCHAR(100) NOT NULL UNIQUE,
@@ -33,9 +13,6 @@ CREATE TABLE Departments (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 2: Doctors
--- ------------------------------------------------------------
 CREATE TABLE Doctors (
     DoctorID        INT           IDENTITY(1,1) PRIMARY KEY,
     FullName        VARCHAR(150)  NOT NULL,
@@ -47,9 +24,7 @@ CREATE TABLE Doctors (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 3: DoctorSchedule
--- ------------------------------------------------------------
+
 CREATE TABLE DoctorSchedule (
     ScheduleID INT         IDENTITY(1,1) PRIMARY KEY,
     DoctorID   INT         NOT NULL,
@@ -62,9 +37,6 @@ CREATE TABLE DoctorSchedule (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 4: Patients
--- ------------------------------------------------------------
 CREATE TABLE Patients (
     PatientID   INT          IDENTITY(1,1) PRIMARY KEY,
     FullName    VARCHAR(150) NOT NULL,
@@ -74,9 +46,7 @@ CREATE TABLE Patients (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 5: InsurancePolicies
--- ------------------------------------------------------------
+
 CREATE TABLE InsurancePolicies (
     PolicyID        INT           IDENTITY(1,1) PRIMARY KEY,
     PatientID       INT           NOT NULL,
@@ -87,10 +57,7 @@ CREATE TABLE InsurancePolicies (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 6: Appointments
---  UNIQUE on (DoctorID, AppointmentDate, TimeSlot) prevents double-booking
--- ------------------------------------------------------------
+
 CREATE TABLE Appointments (
     AppointmentID   INT         IDENTITY(1,1) PRIMARY KEY,
     PatientID       INT         NOT NULL,
@@ -105,10 +72,7 @@ CREATE TABLE Appointments (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 7: MedicalRecords
---  UNIQUE on AppointmentID enforces the 1:1 relationship
--- ------------------------------------------------------------
+
 CREATE TABLE MedicalRecords (
     RecordID         INT           IDENTITY(1,1) PRIMARY KEY,
     AppointmentID    INT           NOT NULL UNIQUE,
@@ -119,9 +83,6 @@ CREATE TABLE MedicalRecords (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 8: Medicines
--- ------------------------------------------------------------
 CREATE TABLE Medicines (
     MedicineID   INT           IDENTITY(1,1) PRIMARY KEY,
     MedicineName VARCHAR(150)  NOT NULL UNIQUE,
@@ -129,9 +90,6 @@ CREATE TABLE Medicines (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 9: Prescriptions
--- ------------------------------------------------------------
 CREATE TABLE Prescriptions (
     PrescriptionID INT           IDENTITY(1,1) PRIMARY KEY,
     RecordID       INT           NOT NULL,
@@ -144,9 +102,6 @@ CREATE TABLE Prescriptions (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 10: LabTests  (catalogue / reference table)
--- ------------------------------------------------------------
 CREATE TABLE LabTests (
     LabTestID INT           IDENTITY(1,1) PRIMARY KEY,
     TestName  VARCHAR(150)  NOT NULL UNIQUE,
@@ -154,10 +109,6 @@ CREATE TABLE LabTests (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 11: LabOrders
---  IsAbnormal is NULL until a result is recorded
--- ------------------------------------------------------------
 CREATE TABLE LabOrders (
     LabOrderID    INT          IDENTITY(1,1) PRIMARY KEY,
     AppointmentID INT          NOT NULL,
@@ -169,11 +120,6 @@ CREATE TABLE LabOrders (
 );
 GO
 
--- ------------------------------------------------------------
---  TABLE 12: Billing
---  UNIQUE on AppointmentID enforces the 1:1 relationship
---  GST stored as a single computed total (0% consult, 5% med, 12% lab)
--- ------------------------------------------------------------
 CREATE TABLE Billing (
     BillID             INT           IDENTITY(1,1) PRIMARY KEY,
     AppointmentID      INT           NOT NULL UNIQUE,
@@ -181,7 +127,6 @@ CREATE TABLE Billing (
     MedicineCharge     DECIMAL(10,2) NOT NULL DEFAULT 0,
     LabCharge          DECIMAL(10,2) NOT NULL DEFAULT 0,
     InsuranceDiscount  DECIMAL(10,2) NOT NULL DEFAULT 0,
-    TotalGST           DECIMAL(10,2) NOT NULL DEFAULT 0,
     FinalAmount        DECIMAL(10,2) NOT NULL DEFAULT 0,
     PaymentStatus      VARCHAR(10)   NOT NULL DEFAULT 'Unpaid'
                                      CHECK (PaymentStatus IN ('Unpaid','Paid','Partial')),
@@ -189,23 +134,14 @@ CREATE TABLE Billing (
 );
 GO
 
--- ------------------------------------------------------------
---  Add FK: Departments.HeadDoctorID -> Doctors
---  Done after both tables exist to avoid circular dependency on creation
--- ------------------------------------------------------------
+
 ALTER TABLE Departments
     ADD CONSTRAINT FK_Dept_HeadDoctor
     FOREIGN KEY (HeadDoctorID) REFERENCES Doctors(DoctorID);
 GO
 
 
--- ============================================================
---  SECTION 2 — SAMPLE DATA
--- ============================================================
-
--- ------------------------------------------------------------
---  Departments  (HeadDoctorID set NULL first, updated below)
--- ------------------------------------------------------------
+-- Data Insertion
 INSERT INTO Departments (DepartmentName, HeadDoctorID) VALUES
     ('Cardiology',       NULL),
     ('Orthopaedics',     NULL),
@@ -214,9 +150,8 @@ INSERT INTO Departments (DepartmentName, HeadDoctorID) VALUES
     ('General Medicine', NULL);
 GO
 
--- ------------------------------------------------------------
 --  Doctors
--- ------------------------------------------------------------
+
 INSERT INTO Doctors (FullName, DepartmentID, Specialisation, ConsultationFee, IsActive) VALUES
     ('Dr. Arjun Mehta',   1, 'Interventional Cardiology', 1500.00, 1),
     ('Dr. Priya Sharma',  2, 'Joint Replacement',         1200.00, 1),
@@ -225,7 +160,7 @@ INSERT INTO Doctors (FullName, DepartmentID, Specialisation, ConsultationFee, Is
     ('Dr. Imran Sheikh',  5, 'Family Medicine',             700.00, 1);
 GO
 
--- Update HeadDoctorID now that Doctors are inserted
+
 UPDATE Departments SET HeadDoctorID = 1 WHERE DepartmentID = 1;
 UPDATE Departments SET HeadDoctorID = 2 WHERE DepartmentID = 2;
 UPDATE Departments SET HeadDoctorID = 3 WHERE DepartmentID = 3;
@@ -233,9 +168,8 @@ UPDATE Departments SET HeadDoctorID = 4 WHERE DepartmentID = 4;
 UPDATE Departments SET HeadDoctorID = 5 WHERE DepartmentID = 5;
 GO
 
--- ------------------------------------------------------------
 --  DoctorSchedule
--- ------------------------------------------------------------
+
 INSERT INTO DoctorSchedule (DoctorID, DayOfWeek, StartTime, EndTime) VALUES
     (1, 'Monday',    '09:00', '13:00'),
     (2, 'Tuesday',   '10:00', '14:00'),
@@ -244,9 +178,9 @@ INSERT INTO DoctorSchedule (DoctorID, DayOfWeek, StartTime, EndTime) VALUES
     (5, 'Friday',    '09:00', '13:00');
 GO
 
--- ------------------------------------------------------------
+
 --  Patients
--- ------------------------------------------------------------
+
 INSERT INTO Patients (FullName, DateOfBirth, Phone, Address) VALUES
     ('Rahul Verma',   '1990-03-15', '9876543210', '12 MG Road, Mumbai'),
     ('Anjali Singh',  '1985-07-22', '9123456780', '45 Park Street, Delhi'),
@@ -255,18 +189,17 @@ INSERT INTO Patients (FullName, DateOfBirth, Phone, Address) VALUES
     ('Suresh Pillai', '1968-05-19', '9765432100', '9 Residency Road, Bangalore');
 GO
 
--- ------------------------------------------------------------
+
 --  InsurancePolicies  (3 of 5 patients have insurance)
--- ------------------------------------------------------------
+
 INSERT INTO InsurancePolicies (PatientID, ProviderName, CoveragePercent, YearlyMaxAmount) VALUES
     (1, 'Star Health Insurance', 40.00, 50000.00),
     (2, 'HDFC ERGO Health',      50.00, 80000.00),
     (4, 'New India Assurance',   30.00, 40000.00);
 GO
 
--- ------------------------------------------------------------
 --  Medicines
--- ------------------------------------------------------------
+
 INSERT INTO Medicines (MedicineName, UnitPrice) VALUES
     ('Amlodipine 5mg',    15.00),
     ('Ibuprofen 400mg',   10.00),
@@ -275,9 +208,7 @@ INSERT INTO Medicines (MedicineName, UnitPrice) VALUES
     ('Metformin 500mg',   12.00);
 GO
 
--- ------------------------------------------------------------
 --  LabTests
--- ------------------------------------------------------------
 INSERT INTO LabTests (TestName, TestCost) VALUES
     ('Complete Blood Count',  350.00),
     ('Lipid Profile',         600.00),
@@ -286,9 +217,8 @@ INSERT INTO LabTests (TestName, TestCost) VALUES
     ('X-Ray Knee',            800.00);
 GO
 
--- ------------------------------------------------------------
 --  Appointments  (spread across Jan–May 2024)
--- ------------------------------------------------------------
+
 INSERT INTO Appointments (PatientID, DoctorID, AppointmentDate, TimeSlot, Status) VALUES
     (1, 1, '2024-01-10', '09:00', 'Completed'),   -- ID 1
     (2, 2, '2024-01-15', '10:00', 'Completed'),   -- ID 2
@@ -302,9 +232,9 @@ INSERT INTO Appointments (PatientID, DoctorID, AppointmentDate, TimeSlot, Status
     (5, 4, '2024-05-20', '11:00', 'Completed');   -- ID 10
 GO
 
--- ------------------------------------------------------------
+
 --  MedicalRecords  (only for Completed appointments)
--- ------------------------------------------------------------
+
 INSERT INTO MedicalRecords (AppointmentID, Diagnosis, TreatmentPlan, RequiresFollowUp) VALUES
     (1,  'Hypertension Stage 2',  'Medication and lifestyle changes',     0),
     (2,  'Knee Osteoarthritis',   'Physiotherapy and pain management',    0),
@@ -316,9 +246,9 @@ INSERT INTO MedicalRecords (AppointmentID, Diagnosis, TreatmentPlan, RequiresFol
     (10, 'Migraine',              'Analgesics and trigger avoidance',     0);
 GO
 
--- ------------------------------------------------------------
+
 --  Prescriptions
--- ------------------------------------------------------------
+
 INSERT INTO Prescriptions (RecordID, MedicineID, Dosage, DurationDays, Quantity) VALUES
     (1, 1, '1 tablet once daily',   30, 30),   -- Amlodipine     — Hypertension
     (1, 4, '1 tablet once daily',   30, 30),   -- Atorvastatin   — Hypertension
@@ -330,9 +260,8 @@ INSERT INTO Prescriptions (RecordID, MedicineID, Dosage, DurationDays, Quantity)
     (8, 5, '1 tablet twice daily',  90, 180);  -- Metformin      — Diabetes
 GO
 
--- ------------------------------------------------------------
 --  LabOrders
--- ------------------------------------------------------------
+
 INSERT INTO LabOrders (AppointmentID, LabTestID, ResultValue, IsAbnormal) VALUES
     (1,  4, 'Normal Sinus Rhythm',   0),   -- ECG
     (1,  2, 'LDL: 180 mg/dL',       1),   -- Lipid Profile — abnormal
@@ -354,75 +283,34 @@ WHERE  AppointmentID IN (
 );
 GO
 
--- ------------------------------------------------------------
+
 --  Billing  (only for Completed appointments)
---
---  GST Rules:
---    Consultation : 0%
---    Medicines    : 5%  (applied after insurance discount)
---    Lab Tests    : 12% (applied after insurance discount)
---
---  Insurance discount applies to MedicineCharge + LabCharge only
--- ------------------------------------------------------------
 
--- Appt 1 | Patient 1 | 40% insurance
--- Med: (30*15)+(30*20) = 1050 | Lab: 500+600 = 1100
--- Discount: (1050+1100)*0.40 = 860
--- GST: (1050-420)*0.05 + (1100-440)*0.12 = 31.50+79.20 = 110.70
--- Final: 1500 + (1050-420) + (1100-440) + 110.70 = 2900.70
-INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, TotalGST, FinalAmount, PaymentStatus)
-VALUES (1, 1500.00, 1050.00, 1100.00, 860.00, 110.70, 2900.70, 'Paid');
+INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, FinalAmount, PaymentStatus)
+VALUES (1, 1500.00, 1050.00, 1100.00, 860.00, 2900.70, 'Paid');
 
--- Appt 2 | Patient 2 | 50% insurance
--- Med: 28*10 = 280 | Lab: 800
--- Discount: (280+800)*0.50 = 540
--- GST: (280-140)*0.05 + (800-400)*0.12 = 7.00+48.00 = 55.00
--- Final: 1200+140+400+55 = 1795.00
-INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, TotalGST, FinalAmount, PaymentStatus)
-VALUES (2, 1200.00, 280.00, 800.00, 540.00, 55.00, 1795.00, 'Paid');
 
--- Appt 3 | Patient 3 | no insurance
--- Med: 21*5 = 105 | Lab: 350
--- GST: 105*0.05 + 350*0.12 = 5.25+42.00 = 47.25
--- Final: 800+105+350+47.25 = 1302.25
-INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, TotalGST, FinalAmount, PaymentStatus)
-VALUES (3, 800.00, 105.00, 350.00, 0.00, 47.25, 1302.25, 'Unpaid');
+INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, FinalAmount, PaymentStatus)
+VALUES (2, 1200.00, 280.00, 800.00, 540.00, 1795.00, 'Paid');
 
--- Appt 5 | Patient 5 | no insurance
--- Med: 15*5 = 75 | Lab: 350
--- GST: 75*0.05 + 350*0.12 = 3.75+42.00 = 45.75
--- Final: 700+75+350+45.75 = 1170.75
-INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, TotalGST, FinalAmount, PaymentStatus)
-VALUES (5, 700.00, 75.00, 350.00, 0.00, 45.75, 1170.75, 'Paid');
 
--- Appt 6 | Patient 1 | 40% insurance
--- Med: 20*10 = 200 | Lab: 0
--- Discount: 200*0.40 = 80
--- GST: (200-80)*0.05 = 6.00
--- Final: 1200+120+0+6 = 1326.00
-INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, TotalGST, FinalAmount, PaymentStatus)
-VALUES (6, 1200.00, 200.00, 0.00, 80.00, 6.00, 1326.00, 'Unpaid');
+INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount,  FinalAmount, PaymentStatus)
+VALUES (3, 800.00, 105.00, 350.00, 0.00, 1302.25, 'Unpaid');
 
--- Appt 7 | Patient 2 | 50% insurance
--- Med: 60*20 = 1200 | Lab: 600
--- Discount: (1200+600)*0.50 = 900
--- GST: (1200-600)*0.05 + (600-300)*0.12 = 30.00+36.00 = 66.00
--- Final: 1500+600+300+66 = 2466.00
-INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, TotalGST, FinalAmount, PaymentStatus)
-VALUES (7, 1500.00, 1200.00, 600.00, 900.00, 66.00, 2466.00, 'Paid');
 
--- Appt 9 | Patient 4 | 30% insurance
--- Med: 180*12 = 2160 | Lab: 150
--- Discount: (2160+150)*0.30 = 693
--- GST: (2160-648)*0.05 + (150-45)*0.12 = 75.60+12.60 = 88.20
--- Final: 800+1512+105+88.20 = 2505.20
-INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, TotalGST, FinalAmount, PaymentStatus)
-VALUES (9, 800.00, 2160.00, 150.00, 693.00, 88.20, 2505.20, 'Unpaid');
+INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount,  FinalAmount, PaymentStatus)
+VALUES (5, 700.00, 75.00, 350.00, 0.00, 1170.75, 'Paid');
 
--- Appt 10 | Patient 5 | no insurance
--- Med: 0 | Lab: 350
--- GST: 350*0.12 = 42.00
--- Final: 1400+0+350+42 = 1792.00
-INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, TotalGST, FinalAmount, PaymentStatus)
-VALUES (10, 1400.00, 0.00, 350.00, 0.00, 42.00, 1792.00, 'Unpaid');
+
+INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount,  FinalAmount, PaymentStatus)
+VALUES (6, 1200.00, 200.00, 0.00, 80.00, 1326.00, 'Unpaid');
+
+INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, FinalAmount, PaymentStatus)
+VALUES (7, 1500.00, 1200.00, 600.00, 900.00,2466.00, 'Paid');
+
+INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, FinalAmount, PaymentStatus)
+VALUES (9, 800.00, 2160.00, 150.00, 693.00,2505.20, 'Unpaid');
+
+INSERT INTO Billing (AppointmentID, ConsultationCharge, MedicineCharge, LabCharge, InsuranceDiscount, FinalAmount, PaymentStatus)
+VALUES (10, 1400.00, 0.00, 350.00, 0.00,1792.00, 'Unpaid');
 GO
